@@ -1,4 +1,5 @@
 use axum::Json;
+use tracing::info;
 
 use crate::models::HealthResponse;
 
@@ -9,6 +10,8 @@ pub async fn root() -> &'static str {
 
 // Handler for health check
 pub async fn health() -> Json<HealthResponse> {
+    info!("Everything's fine!");
+    
     Json(HealthResponse {
         status: "Server healthy",
         version: env!("CARGO_PKG_VERSION"),
