@@ -10,9 +10,8 @@ pub async fn root() -> &'static str {
 }
 
 // Handler for health check
-pub async fn health() -> Result<Json<HealthResponse>, AppError> {
-    info!("Everything's fine!");
-    
+#[tracing::instrument(level = "info", ret)]
+pub async fn health() -> Result<Json<HealthResponse>, AppError> {    
     let response = HealthResponse {
         status: "Server healthy",
         version: env!("CARGO_PKG_VERSION"),
