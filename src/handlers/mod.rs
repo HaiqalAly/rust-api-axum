@@ -5,7 +5,7 @@ use tracing::info;
 
 use crate::AppState;
 use crate::error::AppError;
-use crate::models::{HealthResponse, Search, SearchQuery};
+use crate::models::{HealthResponse, Search, SearchHistory, SearchQuery};
 
 // Handler that respond with static string
 pub async fn root() -> &'static str {
@@ -41,7 +41,31 @@ pub async fn search_handler(
         });
     }
 
+    // Log search (way to justify setting up database for now x_x)
+    sqlx::query!(
+        "INSERT INTO search_history (query, found) VALUES ($1, $2)",
+        query,
+        !result.is_empty()
+    )
+    .execute(&state.db)
+    .await
+    .ok();
+
     Json(result)
+}
+
+// Search history
+pub async fn search_history(
+    State(state): State<Arc<AppState>>
+) -> Result<Json<Vec<SearchHistory>>, AppError> {
+    let history = sqlx::query_as!(
+        SearchHistory,
+        "SELECT id, query, found, searched_at FROM search_history ORDER BY searched_at DESC LIMIT 100"
+    )
+    .fetch_all(&state.db)
+    .await?;
+
+    Ok(Json(history))
 }
 
 // Graceful shutdown

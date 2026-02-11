@@ -63,6 +63,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/", get(handlers::root))
         .route("/health", get(handlers::health))
         .route("/search", get(handlers::search_handler))
+        .route("/history", get(handlers::search_history))
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::with_status_code(
             StatusCode::REQUEST_TIMEOUT,
