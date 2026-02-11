@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use axum::{Json, extract::Query, extract::State};
+use fst::{IntoStreamer, Streamer, automaton::Levenshtein};
 use tracing::info;
 
 use crate::AppState;
@@ -31,15 +32,39 @@ pub async fn search_handler(
     let query = params.q.to_lowercase();
     let query = query.trim();
 
+    // Handle automaton result creation
+    let lev = match Levenshtein::new(query, 1) {
+        Ok(leven) => leven,
+        Err(_) => return Json(vec![]),
+    };
+
+    let mut stream = state.fst_index.search(lev).into_stream();
     let mut result = Vec::new();
 
-    if let Some(score_value) = state.fst_index.get(query.as_bytes()) {
+    while let Some((key_bytes, score_value)) = stream.next() {
+        let key = String::from_utf8_lossy(key_bytes).to_string();
+
         result.push(SearchQuery {
-            found: query.to_string(),
+            found: key,
             score: score_value.to_string(),
             exist: true,
         });
     }
+    
+    result.sort_by(|a, b| {
+        let a_exact = a.found.to_lowercase() == query;
+        let b_exact = b.found.to_lowercase() == query;
+
+        if a_exact != b_exact {
+            return b_exact.cmp(&a_exact); // Exact matches go to the top
+        }
+
+        // Then sort by score
+        let a_score: u64 = a.score.parse().unwrap_or(0);
+        let b_score: u64 = b.score.parse().unwrap_or(0);
+        
+        b_score.cmp(&a_score)
+    });
 
     // Log search (way to justify setting up database for now x_x)
     sqlx::query!(
@@ -56,7 +81,7 @@ pub async fn search_handler(
 
 // Search history
 pub async fn search_history(
-    State(state): State<Arc<AppState>>
+    State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<SearchHistory>>, AppError> {
     let history = sqlx::query_as!(
         SearchHistory,

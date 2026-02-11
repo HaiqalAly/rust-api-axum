@@ -6,6 +6,7 @@ A simple REST API built with Axum that searches words in an FST (Finite State Tr
 
 - Health check endpoint
 - Word search using FST for fast lookups
+- Fuzzy search using Levenshtein with distance 1
 - Log history for the searched word
 - PostgreSQL connection ready
 - Request tracing and logging
