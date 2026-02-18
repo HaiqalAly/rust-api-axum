@@ -1,62 +1,85 @@
 # Rust API with Axum
 
-A REST API built with Axum that searches words in an FST (Finite State Transducer) dictionary with fuzzy matching. This was made to connect my [FST Experiment](https://github.com/HaiqalAly/rust-fst-exp) to the web.
+A high-performance REST API built with Axum for searching words in an FST (Finite State Transducer) dictionary with fuzzy matching capabilities. This project connects the [FST Experiment](https://github.com/HaiqalAly/rust-fst-exp) to the web, providing a fast and efficient word search service.
 
 ## Features
 
-- Health check endpoint with version info
-- Fast word search using FST with memory-mapped files
-- Fuzzy search using Levenshtein automaton (distance 1)
-- Top 10 results using BinaryHeap with prioritization:
-  - Exact matches ranked first
-  - Higher scores ranked second
-  - Alphabetical ordering as tiebreaker
-- Search history logging with PostgreSQL
-- Request tracing and structured logging
-- Request timeout (10s) and graceful shutdown
-- Docker Compose for PostgreSQL setup
+- **Health Monitoring**: Health check endpoint with version information
+- **Fast Search**: Lightning-fast word search using FST with memory-mapped files
+- **Fuzzy Matching**: Levenshtein automaton-based fuzzy search (edit distance: 1)
+- **Smart Ranking**: Top 10 results with intelligent prioritization:
+  - 🥇 Exact matches ranked first
+  - 🥈 Higher scores ranked second
+  - 🥉 Alphabetical ordering as tiebreaker
+- **Search History**: Persistent logging of all searches with PostgreSQL
+- **Observability**: Request tracing and structured logging with `tracing`
+- **Reliability**: Request timeout (10s) and graceful shutdown support
+- **Easy Setup**: Docker Compose for quick PostgreSQL deployment
 
 ## Prerequisites
 
-- Rust 1.75+ (edition 2024)
-- Docker and Docker Compose
-- PostgreSQL 16 (via Docker)
-- FST dictionary file at `data/dict.fst`
+Before you begin, ensure you have the following installed:
 
-## Setup
+- **Rust**: Version 1.75 or higher (Rust edition 2024)
+- **Docker & Docker Compose**: For running PostgreSQL
+- **PostgreSQL**: Version 16 (provided via Docker Compose)
+- **FST Dictionary**: Place your dictionary file at `data/dict.fst`
 
-1. Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
+## Quick Start
 
-2. Place your FST dictionary file in `data/dict.fst`
+### 1. Environment Configuration
 
-3. Start PostgreSQL using Docker Compose:
-   ```bash
-   docker compose up -d
-   ```
+Copy the example environment file:
+```bash
+cp .env.example .env
+```
 
-4. Run database migrations:
-   ```bash
-   cargo install sqlx-cli --no-default-features --features postgres
-   sqlx migrate run
-   ```
+### 2. Dictionary Setup
 
-5. Build and run the server:
-   ```bash
-   cargo run
-   ```
+Place your FST dictionary file at:
+```
+data/dict.fst
+```
 
-Server starts on `http://127.0.0.1:8080`
+### 3. Start PostgreSQL
 
-## Endpoints
+Launch the PostgreSQL database using Docker Compose:
+```bash
+docker compose up -d
+```
 
-### `GET /`
+### 4. Database Migration
+
+Install SQLx CLI and run migrations:
+```bash
+cargo install sqlx-cli --no-default-features --features postgres
+sqlx migrate run
+```
+
+### 5. Run the Server
+
+Start the API server:
+```bash
+cargo run
+```
+
+**Server is ready!** Access it at: `http://127.0.0.1:8080`
+
+## API Endpoints
+
+### Root Endpoint
+
+**`GET /`**
+
 Returns a simple "Hello, World!" message.
 
-### `GET /health`
-Health check endpoint with version information.
+---
+
+### Health Check
+
+**`GET /health`**
+
+Checks the API's health and returns version information.
 
 **Response:**
 ```json
@@ -66,16 +89,26 @@ Health check endpoint with version information.
 }
 ```
 
-### `GET /search?q=<query>`
-Search for a word in the FST dictionary with fuzzy matching (Levenshtein distance 1).
-Returns top 10 results prioritized by exact match, score, and alphabetically.
+---
 
-**Example:**
+### Word Search
+
+**`GET /search?q=<query>`**
+
+Search for words in the FST dictionary with fuzzy matching (Levenshtein distance: 1). Returns top 10 results prioritized by:
+1. Exact matches
+2. Higher scores
+3. Alphabetical order
+
+**Parameters:**
+- `q` (required): The search query string
+
+**Example Request:**
 ```bash
 curl "http://127.0.0.1:8080/search?q=hello"
 ```
 
-**Response:**
+**Example Response:**
 ```json
 [
   {
@@ -91,12 +124,17 @@ curl "http://127.0.0.1:8080/search?q=hello"
 ]
 ```
 
-Returns empty array `[]` if no matches found.
+**Note:** Returns an empty array `[]` if no matches are found.
 
-### `GET /history`
+---
+
+### Search History
+
+**`GET /history`**
+
 Retrieve the last 100 search queries with their results.
 
-**Response:**
+**Example Response:**
 ```json
 [
   {
@@ -107,40 +145,3 @@ Retrieve the last 100 search queries with their results.
   }
 ]
 ```
-
-## Technologies
-
-- **Axum** - Web framework
-- **SQLx** - Async PostgreSQL driver with compile-time query verification
-- **FST** - Finite State Transducer for efficient dictionary storage
-- **Tokio** - Async runtime
-- **Tower HTTP** - Middleware for tracing and timeouts
-- **Tracing** - Structured logging and diagnostics
-
-## Environment Variables
-
-- `DATABASE_URL` - PostgreSQL connection string (default: `postgresql://postgres:postgres@localhost:5432/rustdb`)
-
-## Database Schema
-
-```sql
-CREATE TABLE search_history (
-    id SERIAL PRIMARY KEY,
-    query TEXT NOT NULL,
-    found BOOLEAN NOT NULL,
-    searched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-## Development
-
-The project uses:
-- Rust edition 2024
-- Compile-time query verification with SQLx
-- Memory-mapped FST files for performance
-- Async background logging to avoid blocking requests
-- Structured logging with tracing-subscriber
-
-## License
-
-See [LICENSE](LICENSE) file for details.
